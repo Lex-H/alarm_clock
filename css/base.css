@@ -216,7 +216,9 @@ body {
 .tab-count { font-size:.72rem; min-width:20px; padding:1px 6px; border-radius:99px; background:var(--accent2); color:#fff; line-height:1.4; }
 [data-theme="glass"] .tabs { -webkit-backdrop-filter:blur(20px) saturate(160%); backdrop-filter:blur(20px) saturate(160%); }
 html.view-alarm #setupPanel,
-html.view-alarm #sideInfo { display:none !important; }
+html.view-alarm #sideInfo,
+html.view-stopwatch #setupPanel,
+html.view-stopwatch #sideInfo { display:none !important; }
 
 .next-alarm { margin:16px 0 0; min-height:1.3em; font-size:1rem; font-weight:700; color:var(--accent); }
 .ring-label { white-space:pre-line; line-height:1.5; }
@@ -277,7 +279,6 @@ html.view-alarm #sideInfo { display:none !important; }
 [data-theme="washi"] .time-pick select { border-bottom:1.5px solid rgba(31,26,23,.6); }
 [data-theme="glass"] .tab-count { background:#ff5c9a; }
 .alarm-panel.editing .alarm-head { display:none; }
-html:not(.app-layout) .alarm-list { max-height:max(220px, calc(100vh - 470px)); overflow:auto; padding:4px; margin:-4px; }
 .chips, .days { display:flex; flex-wrap:wrap; gap:6px; }
 .days { margin-top:8px; flex-wrap:nowrap; }
 .chips button, .days button {
@@ -290,3 +291,36 @@ html:not(.app-layout) .alarm-list { max-height:max(220px, calc(100vh - 470px)); 
 .alarm-editor .msg { margin:0; min-height:0; }
 .editor-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
+
+/* =========================================================
+   Stopwatch
+   ========================================================= */
+.digits .dot { display:inline-block; width:.3em; text-align:center; }
+.sw-digits { align-items:baseline; }
+.sw-digits .cs { font-size:.62em; }
+[data-theme="flip"] .digits .dot { color:#2b2622; }
+.sw-lapnow { margin:10px 0 0; min-height:1.4em; text-align:center; font-family:var(--font-digits); font-size:1.05rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+.sw-panel { display:flex; flex-direction:column; gap:12px; container-type:inline-size; }
+.sw-title { margin:0; }
+.sw-controls { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.sw-controls .btn { min-height:58px; font-size:1.15rem; }
+.sw-controls .btn:disabled { opacity:.45; cursor:not-allowed; filter:none; }
+.lap-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; overflow-x:hidden; }
+.lap {
+  display:grid; grid-template-columns:auto minmax(0, 1fr) minmax(0, 1fr); align-items:baseline; gap:6px;
+  padding:9px 6px; border-bottom:1px solid var(--track); font-variant-numeric:tabular-nums;
+}
+.lap:last-child { border-bottom:none; }
+/* sized by the panel width so rows never overflow, even with wide fonts in a narrow sidebar */
+.lap-n { font-weight:700; font-size:min(.9rem, 4.2cqi); white-space:nowrap; }
+.lap-split, .lap-total { text-align:right; font-family:var(--font-digits); font-size:min(1.02rem, 4.4cqi); white-space:nowrap; }
+.lap-total { color:var(--muted); }
+.lap small { font-family:var(--font-ui); font-size:min(.72rem, 3.2cqi); color:var(--muted); margin-right:2px; }
+.lap.best .lap-n, .lap.best .lap-split { color:var(--lap-best); }
+.lap.worst .lap-n, .lap.worst .lap-split { color:var(--lap-worst); }
+.lap.best .lap-n::after, .lap.worst .lap-n::after { display:block; font-size:.68rem; line-height:1.2; }
+.lap.best .lap-n::after { content:'▲ 最快'; }
+.lap.worst .lap-n::after { content:'▼ 最慢'; }
+.lap-empty { margin:10px 0; text-align:center; color:var(--muted); line-height:1.8; font-size:.92rem; }
+.lap-empty small { font-size:.78rem; opacity:.85; }

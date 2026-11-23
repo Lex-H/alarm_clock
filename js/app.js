@@ -7,7 +7,8 @@
 
   const $ = (id) => document.getElementById(id);
   const { pad, WEEKDAYS, store, formatRemaining, hhmm, fmtWhen, computeAlarmTime, buildIntentUrl,
-    uid, sanitizeAlarm, nextOccurrence, repeatText } = window.TimerCore;
+    uid, sanitizeAlarm, nextOccurrence, repeatText,
+    swEmpty, swElapsed, sanitizeStopwatch, formatStopwatch, lapRows } = window.TimerCore;
   const Sound = window.TimerAudio;
 
   const BASE_TITLE = '時間';
@@ -91,6 +92,9 @@
     tabs: $('tabs'), alarmCount: $('alarmCount'),
     alarmPanel: $('alarmPanel'), addAlarmBtn: $('addAlarmBtn'), alarmList: $('alarmList'), alarmEmpty: $('alarmEmpty'), alarmMsg: $('alarmMsg'), androidHint: $('androidHint'),
     alarmEditor: $('alarmEditor'), editorTitle: $('editorTitle'), alHour: $('alHour'), alMin: $('alMin'), alLabel: $('alLabel'),
+    swStage: $('swStage'), swBig: $('swBig'), swBigLap: $('swBigLap'),
+    swPanel: $('swPanel'), swDigits: $('swDigits'), swLapNow: $('swLapNow'),
+    swLapBtn: $('swLapBtn'), swStartBtn: $('swStartBtn'), swLaps: $('swLaps'), swEmpty: $('swEmpty'),
     alPresets: $('alPresets'), alDays: $('alDays'), alMsg: $('alMsg'), alCancel: $('alCancel'), alSysNote: $('alSysNote'),
     setupPanel: $('setupPanel'), quick: $('quick'), minutesInput: $('minutesInput'), labelInput: $('labelInput'),
     backupRow: $('backupRow'), backupChk: $('backupChk'), startBtn: $('startBtn'), setupMsg: $('setupMsg'),
@@ -113,29 +117,35 @@
   let ringItems = []; // what is ringing right now: [{kind:'countdown'|'alarm', label, time}]
   let alarms = [];
   const missed = [];
-  let view = store.get('cd_view', 'timer') === 'alarm' ? 'alarm' : 'timer';
+  const VIEWS = ['timer', 'stopwatch', 'alarm'];
+  let view = store.get('cd_view', 'timer');
+  if (!VIEWS.includes(view)) view = 'timer';
 
   /* ---------------- Rendering ---------------- */
-  function setDigits(str, box = el.digits) {
+  // animate:false skips the flip animation (the stopwatch changes every 10 ms).
+  // Characters after "." (hundredths) get the extra class "cs".
+  function setDigits(str, box = el.digits, { animate = true } = {}) {
     if (box.children.length !== str.length) {
       box.textContent = '';
+      let frac = false;
       for (const ch of str) {
         const sp = document.createElement('span');
-        sp.className = ch === ':' ? 'colon' : 'digit';
+        if (ch === '.') { frac = true; sp.className = 'dot'; }
+        else sp.className = (ch === ':' ? 'colon' : 'digit') + (frac ? ' cs' : '');
         sp.textContent = ch;
         box.appendChild(sp);
       }
       return;
     }
-    [...str].forEach((ch, i) => {
-      const sp = box.children[i];
-      if (sp.textContent !== ch) {
-        sp.textContent = ch;
-        sp.classList.remove('flip');
-        void sp.offsetWidth; // restart animation
-        sp.classList.add('flip');
-      }
-    });
+    for (let i = 0; i < str.length; i++) {
+      const sp = box.children[i], ch = str[i];
+      if (sp.textContent === ch) continue;
+      sp.textContent = ch;
+      if (!animate) continue;
+      sp.classList.remove('flip');
+      void sp.offsetWidth; // restart animation
+      sp.classList.add('flip');
+    }
   }
 
   function render(remMs) {
@@ -176,15 +186,21 @@
 
   /* ---------------- Layout, view tabs & settings sheet ---------------- */
   function updateLayout() {
-    el.html.classList.toggle('app-layout', device !== 'desktop' || window.innerWidth <= 600);
+    // Two columns need room; narrower desktop windows use the single-screen app layout.
+    el.html.classList.toggle('app-layout', device !== 'desktop' || window.innerWidth <= 900);
     updateNow();
+    if (view === 'stopwatch') renderSwTime();
   }
 
   function setView(v) {
-    view = v === 'alarm' ? 'alarm' : 'timer';
+    view = VIEWS.includes(v) ? v : 'timer';
     store.set('cd_view', view);
     el.html.classList.toggle('view-alarm', view === 'alarm');
+    el.html.classList.toggle('view-stopwatch', view === 'stopwatch');
     el.alarmPanel.hidden = view !== 'alarm';
+    el.swPanel.hidden = view !== 'stopwatch';
+    el.swStage.hidden = view !== 'stopwatch';
+    if (view === 'stopwatch') { renderSw(); swKick(); }
     el.tabs.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === view)));
     collapseNotices();
   }
@@ -784,6 +800,111 @@
   }
   function setAlarmMsg(text) { el.alarmMsg.textContent = text; el.alarmMsg.hidden = !text; }
 
+  /* ---------------- Stopwatch ---------------- */
+  const SW_KEY = 'cd_sw';
+  let sw = swEmpty();
+  let swRaf = 0;
+
+  function loadSw() { sw = sanitizeStopwatch(store.json(SW_KEY, null), Date.now()); }
+  function saveSw() {
+    if (!sw.running && !sw.accumulated && !sw.laps.length) store.del(SW_KEY);
+    else store.set(SW_KEY, JSON.stringify(sw));
+  }
+
+  function swToggle() {
+    const now = Date.now();
+    if (sw.running) { sw.accumulated = swElapsed(sw, now); sw.running = false; sw.startAt = 0; }
+    else { sw.running = true; sw.startAt = now; }
+    saveSw(); renderSw(); swKick();
+  }
+  function swLap() {
+    if (!sw.running) return;
+    sw.laps.push(swElapsed(sw, Date.now()));
+    if (sw.laps.length > 999) sw.laps.shift();
+    saveSw(); renderSw();
+  }
+  function swReset() {
+    if (sw.running) return;
+    sw = swEmpty();
+    saveSw(); renderSw();
+  }
+
+  // Digits only: runs every animation frame while the stopwatch is running and visible.
+  function renderSwTime() {
+    const ms = swElapsed(sw, Date.now());
+    const str = formatStopwatch(ms);
+    const long = str.length > 8; // H:MM:SS.cc
+    for (const box of [el.swBig, el.swDigits]) {
+      setDigits(str, box, { animate: false });
+      box.classList.toggle('has-hours', long);
+    }
+    const n = sw.laps.length;
+    const lapText = n ? `第 ${n + 1} 圈 ${formatStopwatch(ms - sw.laps[n - 1])}` : '';
+    if (el.swLapNow.textContent !== lapText) { el.swLapNow.textContent = lapText; el.swBigLap.textContent = lapText; }
+  }
+
+  // Buttons, lap list and digits.
+  function renderSw() {
+    const elapsed = swElapsed(sw, Date.now());
+    el.swStartBtn.textContent = sw.running ? '暫停' : (elapsed > 0 ? '繼續' : '開始');
+    el.swStartBtn.classList.toggle('danger', sw.running);
+    el.swStartBtn.classList.toggle('primary', !sw.running);
+    const showReset = !sw.running && elapsed > 0;
+    el.swLapBtn.textContent = showReset ? '重設' : '計圈';
+    el.swLapBtn.dataset.act = showReset ? 'reset' : 'lap';
+    el.swLapBtn.disabled = !sw.running && !showReset;
+
+    const list = el.swLaps;
+    list.textContent = '';
+    const rows = lapRows(sw.laps);
+    for (let i = rows.length - 1; i >= 0; i--) { // newest first
+      const r = rows[i];
+      const li = document.createElement('li');
+      li.className = 'lap' + (r.best ? ' best' : '') + (r.worst ? ' worst' : '');
+      if (r.best) li.title = '最快的一圈';
+      if (r.worst) li.title = '最慢的一圈';
+      const n = document.createElement('span');
+      n.className = 'lap-n';
+      n.textContent = `第 ${r.n} 圈`;
+      li.append(n, lapCell('lap-split', '單圈', r.split), lapCell('lap-total', '總計', r.total));
+      list.appendChild(li);
+    }
+    list.hidden = !rows.length;
+    el.swEmpty.hidden = rows.length > 0;
+    renderSwTime();
+  }
+  function lapCell(cls, name, ms) {
+    const c = document.createElement('span');
+    c.className = cls;
+    const sm = document.createElement('small');
+    sm.textContent = name;
+    c.append(sm, ' ', formatStopwatch(ms));
+    return c;
+  }
+
+  function swFrame() {
+    swRaf = 0;
+    renderSwTime();
+    swKick();
+  }
+  // Draw hundredths only while it matters: running, on the stopwatch tab, page visible.
+  function swKick() {
+    if (swRaf || !sw.running || view !== 'stopwatch' || document.hidden) return;
+    swRaf = requestAnimationFrame(swFrame);
+  }
+
+  const isTyping = (t) => t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]');
+  let swSpaceHandled = false;
+  // Stopwatch tab shortcuts: Space = start/pause, L = lap, R = reset (when paused).
+  function swKeydown(e) {
+    if (view !== 'stopwatch' || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target) || isSheetOpen()) return;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (k === ' ') { e.preventDefault(); swSpaceHandled = true; if (!e.repeat) swToggle(); return; }
+    if (e.repeat) return;
+    if (k === 'l') { e.preventDefault(); swLap(); }
+    else if (k === 'r') { e.preventDefault(); swReset(); }
+  }
+
   /* ---------------- Events ---------------- */
   el.quick.addEventListener('click', (e) => {
     const b = e.target.closest('[data-min]');
@@ -801,8 +922,15 @@
   document.addEventListener('keydown', (e) => {
     // Ringing takes priority over closing the settings sheet.
     if (ringItems.length && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); stopRinging(); return; }
-    if (e.key === 'Escape' && isSheetOpen()) { e.preventDefault(); closeSettings(); }
+    if (e.key === 'Escape' && isSheetOpen()) { e.preventDefault(); closeSettings(); return; }
+    swKeydown(e);
   });
+  // A focused button would also "click" on Space keyup: cancel that when the shortcut used Space.
+  document.addEventListener('keyup', (e) => {
+    if (e.key === ' ' && swSpaceHandled) { e.preventDefault(); swSpaceHandled = false; }
+  });
+  el.swStartBtn.addEventListener('click', swToggle);
+  el.swLapBtn.addEventListener('click', () => { if (el.swLapBtn.dataset.act === 'reset') swReset(); else swLap(); });
 
   el.settingsBtn.addEventListener('click', openSettings);
   el.modeBadge.addEventListener('click', openSettings);
@@ -897,10 +1025,12 @@
     tick();
     checkAlarms(false);
     if (S.status === 'running' && S.mode === 'web' && device !== 'desktop') requestWakeLock();
+    if (view === 'stopwatch') { renderSwTime(); swKick(); }
   });
 
   // Another tab changed the alarm list → reload it.
   window.addEventListener('storage', (e) => {
+    if (e.key === SW_KEY) { loadSw(); renderSw(); swKick(); return; }
     if (e.key !== ALARMS_KEY) return;
     loadAlarms();
     if (el.alarmEditor.hidden) renderAlarms();
@@ -914,6 +1044,7 @@
     el.alMin.add(new Option(pad(i), String(i)));
   }
   loadAlarms();
+  loadSw();
   updateLayout();
   applyTheme(theme, false);
   setView(view);
@@ -938,5 +1069,5 @@
   }, 1000);
 
   // Exposed for manual testing in DevTools.
-  window.__countdown = { core: window.TimerCore, state: S };
+  window.__countdown = { core: window.TimerCore, state: S, stopwatch: () => sw };
 })();

@@ -36,6 +36,12 @@
         <p class="next-alarm" id="nextAlarmLine"></p>
         <p class="stage-hint">從右側選擇倒數時間，按下開始即可計時</p>
       </div>
+      <div class="sw-stage" id="swStage" hidden>
+        <p class="stage-kicker">碼錶</p>
+        <div class="digits sw-digits" id="swBig" aria-live="off"></div>
+        <p class="sw-lapnow" id="swBigLap"></p>
+        <p class="stage-hint">快捷鍵：空白鍵 開始／暫停・L 計圈・R 重設</p>
+      </div>
       <section class="card run" id="runPanel" hidden>
         <div class="run-label" id="runLabel"></div>
         <div class="dial">
@@ -73,6 +79,7 @@
     <aside class="side">
       <nav class="tabs" id="tabs" role="tablist" aria-label="功能切換">
         <button type="button" role="tab" data-view="timer">⏱ 倒數計時</button>
+        <button type="button" role="tab" data-view="stopwatch">⏲ 碼錶</button>
         <button type="button" role="tab" data-view="alarm">⏰ 鬧鐘 <span class="tab-count" id="alarmCount" hidden></span></button>
       </nav>
 
@@ -116,6 +123,20 @@
           <div><dt>計時模式</dt><dd id="siMode"></dd></div>
         </dl>
         <p class="small">時間到時會以全螢幕提示；按 Esc、Enter 或「停止響鈴」即可關閉。倒數已存在此裝置，關閉網頁後重新打開會繼續。</p>
+      </section>
+
+      <section class="card sw-panel" id="swPanel" hidden>
+        <div class="sw-display">
+          <div class="digits sw-digits" id="swDigits" aria-live="off"></div>
+          <p class="sw-lapnow" id="swLapNow"></p>
+        </div>
+        <p class="section-title sw-title">碼錶</p>
+        <div class="sw-controls">
+          <button type="button" class="btn" id="swLapBtn">計圈</button>
+          <button type="button" class="btn primary" id="swStartBtn">開始</button>
+        </div>
+        <ol class="lap-list" id="swLaps" aria-label="計圈紀錄"></ol>
+        <p class="lap-empty" id="swEmpty">按「計圈」記錄每一圈的時間。<br><small>碼錶會儲存在此裝置，關閉網頁後再打開會繼續計時。</small></p>
       </section>
 
       <section class="card alarm-panel" id="alarmPanel" hidden>

@@ -269,3 +269,9 @@ html.alarming[data-theme="washi"] .stamp {
 [data-theme="glass"] { --stage-deco:radial-gradient(circle at 50% 38%, rgba(255,255,255,.2), transparent 60%); }
 [data-theme="arcade"] { --stage-deco:radial-gradient(rgba(41,173,255,.18) 1px, transparent 1.5px) 0 0 / 18px 18px; }
 
+
+/* stopwatch fastest / slowest lap colors */
+:root { --lap-best:#3ddc84; --lap-worst:#ff5c6c; }
+[data-theme="flip"], [data-theme="washi"] { --lap-best:#1d8a4a; --lap-worst:#c8372d; }
+[data-theme="glass"] { --lap-best:#8dffc0; --lap-worst:#ffb0c0; }
+[data-theme="arcade"] { --lap-best:#00e436; --lap-worst:#ff004d; }

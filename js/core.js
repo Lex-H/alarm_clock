@@ -99,9 +99,61 @@
     return '每週' + [1, 2, 3, 4, 5, 6, 0].filter((d) => days.includes(d)).map((d) => WEEKDAYS[d]).join('、');
   }
 
+  /* ---------- stopwatch ---------- */
+  // State: { running, startAt, accumulated, laps:[cumulative ms…] }.
+  // Elapsed time is always derived from timestamps, never counted up tick by tick.
+  const swEmpty = () => ({ running: false, startAt: 0, accumulated: 0, laps: [] });
+
+  function swElapsed(sw, now) {
+    const acc = Number(sw && sw.accumulated) || 0;
+    return Math.max(0, acc + (sw && sw.running ? now - sw.startAt : 0));
+  }
+
+  // Validate stored stopwatch state; anything malformed becomes a fresh stopwatch.
+  function sanitizeStopwatch(d, now) {
+    if (!d || typeof d !== 'object') return swEmpty();
+    const accumulated = Math.max(0, Number(d.accumulated) || 0);
+    let startAt = Number(d.startAt);
+    const running = !!d.running && Number.isFinite(startAt);
+    if (running && startAt > now) startAt = now; // clock moved backwards
+    const laps = [];
+    if (Array.isArray(d.laps)) {
+      for (const v of d.laps.slice(0, 999)) {
+        const t = Number(v);
+        if (Number.isFinite(t) && t >= (laps.length ? laps[laps.length - 1] : 0)) laps.push(t);
+      }
+    }
+    return { running, startAt: running ? startAt : 0, accumulated, laps };
+  }
+
+  // MM:SS.cc (hundredths); from one hour on: H:MM:SS.cc
+  function formatStopwatch(ms) {
+    ms = Math.max(0, Math.floor(ms || 0));
+    const cs = Math.floor(ms / 10) % 100;
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+    return h > 0 ? `${h}:${pad(m)}:${pad(ss)}.${pad(cs)}` : `${pad(m)}:${pad(ss)}.${pad(cs)}`;
+  }
+
+  // laps (cumulative ms) → [{ n, split, total, best, worst }] in lap order.
+  // Fastest / slowest are only marked once there are at least 3 laps.
+  function lapRows(laps) {
+    const rows = (laps || []).map((t, i) => ({ n: i + 1, split: t - (i ? laps[i - 1] : 0), total: t, best: false, worst: false }));
+    if (rows.length >= 3) {
+      let bi = 0, wi = 0;
+      rows.forEach((r, i) => {
+        if (r.split < rows[bi].split) bi = i;
+        if (r.split > rows[wi].split) wi = i;
+      });
+      if (rows[bi].split !== rows[wi].split) { rows[bi].best = true; rows[wi].worst = true; }
+    }
+    return rows;
+  }
+
   const TimerCore = {
     pad, WEEKDAYS, store, detectDevice, formatRemaining, hhmm, fmtWhen,
     computeAlarmTime, buildIntentUrl, uid, sanitizeAlarm, nextOccurrence, repeatText,
+    swEmpty, swElapsed, sanitizeStopwatch, formatStopwatch, lapRows,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = TimerCore;
   root.TimerCore = TimerCore;
