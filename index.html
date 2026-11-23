@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="neon">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0221">
+<title>倒數計時器</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/layout.css">
+</head>
+<body>
+<div class="fx fx-a" aria-hidden="true"></div>
+<div class="fx fx-b" aria-hidden="true"></div>
+
+<main class="app" id="app">
+  <header class="card topbar">
+    <div class="head-main">
+      <h1 class="brand"><span aria-hidden="true">⏰</span> <span id="brandText">倒數計時器</span></h1>
+      <button type="button" class="badge" id="modeBadge" title="開啟設定切換模式">偵測中…</button>
+    </div>
+    <button type="button" class="icon-btn" id="settingsBtn" aria-label="設定" aria-haspopup="dialog" aria-expanded="false" title="設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="workspace">
+    <section class="card stage" id="stage">
+      <div class="idle-view" id="idleView">
+        <p class="stage-kicker">現在時間</p>
+        <div class="digits now-digits" id="nowDigits" aria-live="off"></div>
+        <p class="now-date" id="nowDate"></p>
+        <p class="next-alarm" id="nextAlarmLine"></p>
+        <p class="stage-hint">從右側選擇倒數時間，按下開始即可計時</p>
+      </div>
+      <section class="card run" id="runPanel" hidden>
+        <div class="run-label" id="runLabel"></div>
+        <div class="dial">
+          <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <filter id="brush" x="-10%" y="-10%" width="120%" height="120%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="t"/>
+                <feDisplacementMap in="SourceGraphic" in2="t" scale="2.4"/>
+              </filter>
+              <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#ffffff"/>
+                <stop offset="1" stop-color="#ffd1ef"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-track" cx="50" cy="50" r="45"/>
+            <circle class="ring-prog" id="ringProg" cx="50" cy="50" r="45" pathLength="100" transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="digits" id="digits" aria-live="off"></div>
+        </div>
+        <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+        <div class="target"><span id="targetLabel">目標響鈴時間</span><strong id="targetTime">--:--</strong></div>
+
+        <div class="android-box" id="androidBox" hidden>
+          <a class="btn primary big" id="intentLink" href="#">📱 點此開啟系統鬧鐘</a>
+          <p class="small" id="androidHint">若沒有自動跳轉，請點上方按鈕。跳轉後若出現確認畫面，請手動按「確認／儲存」。系統鬧鐘建立後，關閉此頁倒數不會刪除系統鬧鐘。</p>
+        </div>
+
+        <div class="controls">
+          <button type="button" class="btn" id="pauseBtn">暫停</button>
+          <button type="button" class="btn danger" id="cancelBtn">取消</button>
+        </div>
+      </section>
+    </section>
+
+    <aside class="side">
+      <nav class="tabs" id="tabs" role="tablist" aria-label="功能切換">
+        <button type="button" role="tab" data-view="timer">⏱ 倒數計時</button>
+        <button type="button" role="tab" data-view="alarm">⏰ 鬧鐘 <span class="tab-count" id="alarmCount" hidden></span></button>
+      </nav>
+
+      <section class="notice missed" id="missedNote" hidden>
+        <span class="n-short" id="missedShort"></span>
+        <span class="n-full"><span id="missedText"></span> <button type="button" class="link-btn" id="missedClose">知道了</button></span>
+      </section>
+      <section class="notice sound" id="soundNote" hidden>
+        <span class="n-short">🔈 點一下畫面以啟用鈴聲</span>
+        <span class="n-full">🔈 瀏覽器限制：重新開啟網頁後，需要先點一下畫面才能播放鈴聲。點任何地方即可啟用。</span>
+      </section>
+      <section class="card" id="setupPanel">
+        <p class="section-title">快捷倒數</p>
+        <div class="quick" id="quick">
+          <button type="button" class="btn" data-min="5">5 分鐘</button>
+          <button type="button" class="btn" data-min="10">10 分鐘</button>
+          <button type="button" class="btn" data-min="15">15 分鐘</button>
+          <button type="button" class="btn" data-min="30">30 分鐘</button>
+        </div>
+        <div class="fields">
+          <label class="field"><span>自訂分鐘數</span>
+            <input id="minutesInput" type="number" min="0.1" max="1440" step="any" inputmode="decimal" placeholder="例如 25">
+          </label>
+          <label class="field"><span>提醒標籤／鬧鐘名稱</span>
+            <input id="labelInput" type="text" maxlength="40" placeholder="例如：泡麵好了">
+          </label>
+        </div>
+        <label class="check" id="backupRow" hidden>
+          <input type="checkbox" id="backupChk"> 同時用網頁響鈴備援（需保持此頁開啟）
+        </label>
+        <button type="button" class="btn primary big" id="startBtn">開始</button>
+        <p class="msg" id="setupMsg" role="status"></p>
+      </section>
+
+      <section class="card side-info" id="sideInfo" hidden>
+        <p class="section-title">目前倒數</p>
+        <dl class="info-list">
+          <div><dt>提醒標籤</dt><dd id="siLabel"></dd></div>
+          <div><dt>開始時間</dt><dd id="siStart"></dd></div>
+          <div><dt>倒數長度</dt><dd id="siLen"></dd></div>
+          <div><dt>計時模式</dt><dd id="siMode"></dd></div>
+        </dl>
+        <p class="small">時間到時會以全螢幕提示；按 Esc、Enter 或「停止響鈴」即可關閉。倒數已存在此裝置，關閉網頁後重新打開會繼續。</p>
+      </section>
+
+      <section class="card alarm-panel" id="alarmPanel" hidden>
+        <div class="alarm-head">
+          <p class="section-title">我的鬧鐘</p>
+          <button type="button" class="btn primary add-btn" id="addAlarmBtn">＋ 新增鬧鐘</button>
+        </div>
+        <div class="alarm-list" id="alarmList"></div>
+        <p class="msg alarm-msg" id="alarmMsg" role="status" hidden></p>
+        <p class="alarm-empty" id="alarmEmpty">還沒有鬧鐘。<br>按「＋ 新增鬧鐘」設定第一個吧。<br><small>鬧鐘會儲存在此裝置，關閉網頁後仍會保留。</small></p>
+
+        <form class="alarm-editor" id="alarmEditor" hidden>
+          <p class="section-title" id="editorTitle">新增鬧鐘</p>
+          <div class="time-pick">
+            <select id="alHour" aria-label="小時（24 小時制）"></select>
+            <span aria-hidden="true">:</span>
+            <select id="alMin" aria-label="分鐘"></select>
+          </div>
+          <label class="field"><span>名稱</span>
+            <input id="alLabel" type="text" maxlength="40" placeholder="例如：起床">
+          </label>
+          <div class="field"><span>重複</span>
+            <div class="chips" id="alPresets">
+              <button type="button" data-preset="once">只響一次</button>
+              <button type="button" data-preset="daily">每天</button>
+              <button type="button" data-preset="weekdays">平日</button>
+              <button type="button" data-preset="weekend">週末</button>
+            </div>
+            <div class="days" id="alDays">
+              <button type="button" data-day="1">一</button>
+              <button type="button" data-day="2">二</button>
+              <button type="button" data-day="3">三</button>
+              <button type="button" data-day="4">四</button>
+              <button type="button" data-day="5">五</button>
+              <button type="button" data-day="6">六</button>
+              <button type="button" data-day="0">日</button>
+            </div>
+          </div>
+          <p class="small" id="alSysNote" hidden>📱 Android 模式：儲存後會同時嘗試加到手機時鐘 App（重複星期需在時鐘 App 內自行設定）。不論是否成功，此網頁開著時都會照常響鈴。</p>
+          <p class="msg" id="alMsg"></p>
+          <div class="editor-actions">
+            <button type="button" class="btn" id="alCancel">取消</button>
+            <button type="submit" class="btn primary">儲存</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="notice tip" id="tipDesktop" hidden>
+        <span class="n-short">💡 保持分頁開啟、勿靜音，切到其他程式仍會響鈴</span>
+        <span class="n-full">💡 請保持分頁開啟且勿將分頁靜音，切至其他程式時時間到仍會響鈴。</span>
+      </section>
+      <section class="notice warn" id="warnMobile" hidden>
+        <span class="n-short">⚠️ 不支援系統鬧鐘・請保持此頁開啟、勿鎖屏</span>
+        <span class="n-full"><b>⚠️ 此系統不支援由網頁直接設定內建鬧鐘</b>
+        目前使用網頁計時：切出瀏覽器、切換 App 或鎖定螢幕，都可能導致時間到時無法響鈴。請保持螢幕開啟並停留在此頁面，且不要開啟靜音模式。</span>
+      </section>
+      <section class="notice info" id="noteAndroid" hidden>
+        <span class="n-short">📱 將跳轉系統時鐘建立鬧鐘・點此看說明</span>
+        <span class="n-full">📱 按下開始後會跳轉到系統時鐘建立鬧鐘。若手機廠牌忽略「略過確認畫面」參數，請在跳轉後的時鐘畫面手動按「確認／儲存」。<span id="notAndroidHint"></span></span>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footer">所有計時都在你的裝置上執行，不會傳送任何資料。</p>
+</main>
+
+<div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+<div class="sheet" id="settingsSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 id="sheetTitle">設定</h2>
+    <button type="button" class="icon-btn" id="sheetClose" aria-label="關閉設定">✕</button>
+  </div>
+  <div class="sheet-body">
+    <section>
+      <h3>美術風格</h3>
+      <div class="style-grid" id="styleGrid" role="group" aria-label="美術風格">
+        <button type="button" class="style-card" data-theme-name="flip">
+          <span class="pv pv-flip" aria-hidden="true"><span>1</span><span>2</span><em>:</em><span>3</span><span>4</span></span>
+          <span class="style-meta"><b>1 復古翻頁鐘</b><small>70 年代翻牌數字、暖米白與橘色</small></span>
+        </button>
+        <button type="button" class="style-card" data-theme-name="neon">
+          <span class="pv pv-neon" aria-hidden="true">12:34</span>
+          <span class="style-meta"><b>2 賽博霓虹</b><small>霓虹光暈、掃描線與格線地板</small></span>
+        </button>
+        <button type="button" class="style-card" data-theme-name="washi">
+          <span class="pv pv-washi" aria-hidden="true">12:34<i></i></span>
+          <span class="style-meta"><b>3 日系和紙</b><small>和紙紋理、墨色明朝體、朱紅印章</small></span>
+        </button>
+        <button type="button" class="style-card" data-theme-name="glass">
+          <span class="pv pv-glass" aria-hidden="true"><span>12:34</span></span>
+          <span class="style-meta"><b>4 新擬物玻璃</b><small>極光漸層、毛玻璃卡片、環形進度</small></span>
+        </button>
+        <button type="button" class="style-card" data-theme-name="arcade">
+          <span class="pv pv-arcade" aria-hidden="true">12:34</span>
+          <span class="style-meta"><b>5 像素街機</b><small>CRT 掃描線、LEVEL 按鍵、GAME OVER</small></span>
+        </button>
+      </div>
+    </section>
+
+    <section>
+      <h3>計時模式</h3>
+      <p class="sheet-note" id="deviceInfo"></p>
+      <div class="opt-list" id="modeOpts" role="group" aria-label="計時模式">
+        <button type="button" class="opt" data-mode="auto"><span class="dot"></span><span><b>自動偵測</b><small>依裝置自動選擇（建議）</small></span></button>
+        <button type="button" class="opt" data-mode="web"><span class="dot"></span><span><b>網頁計時</b><small>由此網頁倒數並播放鈴聲</small></span></button>
+        <button type="button" class="opt" data-mode="android"><span class="dot"></span><span><b>Android 系統鬧鐘</b><small>跳轉手機時鐘 App 建立鬧鐘</small></span></button>
+      </div>
+      <p class="lock-hint" id="lockHint" hidden>計時進行中，無法切換模式。</p>
+    </section>
+
+    <section id="notifySection" hidden>
+      <h3>桌面通知</h3>
+      <p class="sheet-note">時間到時若分頁不在前景，額外跳出系統通知（選用）。</p>
+      <button type="button" class="btn" id="notifyBtn">啟用桌面通知</button>
+    </section>
+  </div>
+</div>
+
+<div class="ring-overlay" id="ringOverlay" hidden role="alertdialog" aria-labelledby="ringTitle">
+  <div class="ring-inner">
+    <div class="stamp" id="stamp" aria-hidden="true">時</div>
+    <div class="ring-title" id="ringTitle" data-text="時間到！">時間到！</div>
+    <div class="ring-label" id="ringLabel"></div>
+    <button type="button" class="btn primary huge" id="stopBtn">停止響鈴</button>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

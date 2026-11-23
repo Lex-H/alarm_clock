@@ -1,0 +1,167 @@
+/* Layouts: desktop two-column stage + sidebar, and the app-like single-screen layout for phones. */
+
+/* =========================================================
+   Desktop layout: stage (big clock) + control sidebar
+   ========================================================= */
+html:not(.app-layout) .app { max-width:1200px; min-height:100vh; padding:26px 40px 22px; gap:22px; }
+html:not(.app-layout) .topbar {
+  background:none; border:none; box-shadow:none; border-radius:0; padding:2px 2px 16px;
+  border-bottom:1px solid var(--track);
+  -webkit-backdrop-filter:none; backdrop-filter:none;
+}
+html:not(.app-layout) .brand { font-size:1.9rem; }
+html:not(.app-layout) .badge { font-size:.86rem; padding:6px 13px; }
+html:not(.app-layout) .footer { margin:0; }
+
+.workspace { display:grid; grid-template-columns:minmax(0, 1fr) 380px; gap:24px; flex:1; align-items:stretch; }
+.stage {
+  position:relative; overflow:hidden; isolation:isolate;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:560px; padding:48px 40px;
+}
+.stage::before { content:''; position:absolute; inset:0; z-index:-1; pointer-events:none; background:var(--stage-deco, none); }
+.side { display:flex; flex-direction:column; gap:16px; min-width:0; }
+
+.idle-view { text-align:center; }
+.stage-kicker { margin:0 0 22px; font-size:.82rem; letter-spacing:.35em; color:var(--muted); font-weight:700; }
+.now-digits { font-size:clamp(4rem, 8vw, 8.4rem); }
+.now-date { margin:26px 0 0; font-size:1.1rem; color:var(--muted); letter-spacing:.06em; }
+.stage-hint { margin:42px 0 0; font-size:.88rem; color:var(--muted); opacity:.75; }
+
+html:not(.app-layout) .stage #runPanel {
+  width:100%; max-width:660px; padding:0;
+  background:none; border:none; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none;
+}
+html:not(.app-layout) #runPanel .run-label { font-size:1.45rem; letter-spacing:.04em; margin-bottom:18px; }
+html:not(.app-layout) #runPanel .digits { font-size:clamp(4rem, 7.6vw, 8.2rem); }
+html:not(.app-layout)[data-theme="flip"] #runPanel .digits,
+html:not(.app-layout)[data-theme="flip"] .now-digits { font-size:clamp(3.2rem, 6.4vw, 7rem); }
+html:not(.app-layout)[data-theme="washi"] .dial,
+html:not(.app-layout)[data-theme="glass"] .dial { width:min(420px, 34vw, 44vh); }
+html:not(.app-layout)[data-theme="washi"] #runPanel .digits,
+html:not(.app-layout)[data-theme="glass"] #runPanel .digits { font-size:clamp(2.2rem, 3.6vw, 4rem); }
+html:not(.app-layout) #runPanel .bar { max-width:560px; margin:26px auto; height:10px; }
+html:not(.app-layout) #runPanel .target strong { font-size:2.4rem; }
+html:not(.app-layout) #runPanel .android-box { max-width:440px; margin:22px auto 0; }
+html:not(.app-layout) #runPanel .controls { max-width:440px; margin:28px auto 0; }
+
+/* sidebar controls */
+html:not(.app-layout) #setupPanel { padding:22px; }
+html:not(.app-layout) .quick { grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:20px; }
+html:not(.app-layout) .quick .btn { min-height:82px; font-size:1.25rem; }
+html:not(.app-layout) .fields { grid-template-columns:1fr; gap:14px; margin-bottom:18px; }
+html:not(.app-layout) .msg { margin-top:10px; }
+.side-info { padding:22px; }
+.info-list { margin:0 0 16px; display:flex; flex-direction:column; }
+.info-list > div { display:flex; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid var(--track); }
+.info-list > div:last-child { border-bottom:none; }
+.info-list dt { color:var(--muted); font-size:.9rem; }
+.info-list dd { margin:0; font-weight:700; text-align:right; word-break:break-word; }
+html:not(.app-layout) .side .notice { font-size:.86rem; line-height:1.6; }
+
+@media (max-width:960px) {
+  html:not(.app-layout) .app { padding:22px 24px; }
+  .workspace { grid-template-columns:1fr; }
+  .stage { min-height:420px; }
+}
+
+/* Mobile / narrow: app-like single screen, no page scrolling */
+html.app-layout .workspace,
+html.app-layout .stage,
+html.app-layout .side { display:contents; }
+html.app-layout .idle-view,
+html.app-layout .side-info { display:none !important; }
+html.app-layout .topbar { order:0; }
+html.app-layout .notice { order:1; }
+html.app-layout #setupPanel,
+html.app-layout #runPanel { order:2; }
+html.app-layout, html.app-layout body { height:100%; overflow:hidden; overscroll-behavior:none; }
+html.app-layout body { min-height:0; height:100vh; height:100dvh; }
+html.app-layout .app {
+  height:100vh; height:100dvh; max-width:none; gap:10px;
+  padding:max(10px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+}
+html.app-layout[data-theme="arcade"] .app { margin-top:0; gap:14px; padding-left:16px; padding-right:16px; }
+html.app-layout .footer { display:none; }
+html.app-layout .card { padding:14px; }
+html.app-layout .topbar { flex:none; padding:10px 10px 10px 14px; }
+html.app-layout .head-main { flex-direction:column; align-items:flex-start; gap:4px; }
+html.app-layout .badge { font-size:.74rem; padding:3px 9px; }
+
+/* compact notices: one line, tap to expand as an overlay */
+html.app-layout .notice { flex:none; position:relative; z-index:5; padding:9px 30px 9px 12px; font-size:.84rem; line-height:1.4; cursor:pointer; }
+html.app-layout .notice .n-full { display:none; }
+html.app-layout .notice .n-short { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html.app-layout .notice::after { content:'▾'; position:absolute; right:12px; top:50%; transform:translateY(-50%); opacity:.7; }
+html.app-layout .notice.expanded::after { content:'▴'; top:18px; }
+html.app-layout .notice.expanded .n-full {
+  display:block; position:absolute; left:0; right:0; top:100%; margin-top:4px; padding:12px 14px;
+  border-radius:var(--radius-sm); background:var(--sheet-bg); color:var(--fg); box-shadow:0 12px 30px rgba(0,0,0,.35);
+  -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+}
+html.app-layout .notice.warn.expanded .n-full { background:#ffe27a; color:#2a1d00; }
+
+/* panels fill the remaining height */
+html.app-layout #setupPanel,
+html.app-layout #runPanel { flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; }
+html.app-layout .quick { grid-template-columns:repeat(2, 1fr); grid-auto-rows:1fr; gap:10px; margin-bottom:14px; flex:1 1 0; min-height:104px; max-height:230px; }
+html.app-layout .quick .btn { padding:6px 4px; min-height:0; height:100%; font-size:1.2rem; }
+html.app-layout[data-theme="arcade"] .quick .btn { font-size:1rem; }
+html.app-layout .fields { grid-template-columns:1fr 1.7fr; gap:10px; margin-bottom:12px; }
+html.app-layout .field input { padding:11px 12px; }
+html.app-layout .check { font-size:.84rem; }
+html.app-layout #startBtn { margin-top:auto; }
+html.app-layout .msg { margin-top:8px; min-height:1.2em; font-size:.88rem; }
+
+html.app-layout #runPanel { justify-content:space-between; gap:6px; }
+html.app-layout .run-label { margin:0; font-size:1.05rem; }
+html.app-layout .dial { margin:0 auto; }
+html.app-layout .digits { font-size:clamp(2.2rem, min(13vw, 11dvh), 6rem); }
+html.app-layout[data-theme="flip"] .digits { font-size:clamp(2rem, min(11vw, 9.5dvh), 5.5rem); }
+html.app-layout[data-theme="washi"] .dial,
+html.app-layout[data-theme="glass"] .dial { width:min(76vw, 36dvh); }
+html.app-layout[data-theme="washi"] #runPanel.is-android .dial,
+html.app-layout[data-theme="glass"] #runPanel.is-android .dial { width:min(58vw, 25dvh); }
+html.app-layout[data-theme="washi"] .digits,
+html.app-layout[data-theme="glass"] .digits { font-size:clamp(1.7rem, min(9vw, 6.5dvh), 3.4rem); }
+html.app-layout[data-theme="washi"] #runPanel.is-android .digits,
+html.app-layout[data-theme="glass"] #runPanel.is-android .digits { font-size:clamp(1.2rem, min(6.8vw, 4.5dvh), 2.5rem); }
+html.app-layout .bar { margin:4px 0; }
+html.app-layout .target strong { font-size:1.6rem; }
+html.app-layout .android-box { margin-top:0; gap:6px; }
+html.app-layout .android-box .btn.big { min-height:50px; font-size:1rem; }
+html.app-layout .android-box .small { font-size:.74rem; line-height:1.4; }
+html.app-layout .controls { margin-top:4px; }
+
+/* settings becomes a bottom sheet */
+html.app-layout .sheet {
+  left:0; right:0; top:auto; bottom:0; width:100%; max-height:88dvh;
+  border-radius:calc(var(--radius) + 8px) calc(var(--radius) + 8px) 0 0;
+  transform:translateY(100%); opacity:1;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+html.app-layout .sheet.open { transform:translateY(0); }
+html.app-layout .sheet-grab { display:block; width:40px; height:5px; border-radius:3px; background:var(--muted); opacity:.5; margin:8px auto 0; }
+html.app-layout .sheet-head { padding:8px 12px 10px 18px; }
+html.app-layout .sheet-body { padding:14px 16px 20px; }
+html.app-layout .style-grid { grid-template-columns:repeat(2, 1fr); gap:10px; }
+/* tabs become a bottom tab bar; alarm panel fills the screen, list scrolls inside */
+html.app-layout .tabs { order:3; flex:none; padding:4px; }
+html.app-layout .tabs button { padding:10px 6px; }
+html.app-layout.view-alarm #runPanel { display:none !important; }
+html.app-layout #alarmPanel { order:2; flex:1 1 auto; min-height:0; overflow:hidden; }
+html.app-layout .alarm-list,
+html.app-layout .alarm-editor { flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; }
+html.app-layout .time-pick { font-size:2.1rem; }
+html.app-layout .alarm-editor { gap:10px; }
+html.app-layout .editor-actions {
+  position:sticky; bottom:0; z-index:2; margin-top:auto; padding-top:8px;
+  background:var(--sheet-bg); box-shadow:0 -10px 12px -8px rgba(0,0,0,.25);
+}
+@media (max-height:600px) {
+  html.app-layout .btn.big { min-height:50px; }
+  html.app-layout .section-title { display:none; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition:none !important; }
+}
