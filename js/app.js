@@ -10,7 +10,7 @@
     uid, sanitizeAlarm, nextOccurrence, repeatText } = window.TimerCore;
   const Sound = window.TimerAudio;
 
-  const BASE_TITLE = '倒數計時器';
+  const BASE_TITLE = '時間';
 
   /* ---------------- Device detection & mode ---------------- */
   const DEVICE_NAMES = { android: 'Android 裝置', ios: 'iOS／iPadOS 裝置', mobile: '行動裝置', desktop: '電腦' };
