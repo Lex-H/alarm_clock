@@ -26,12 +26,14 @@
   }
 
   /* ---------------- Themes ---------------- */
+  // brand text is intentionally the same across all 5 styles (just the page title, "時間");
+  // only the per-style wording below (quick/start/ring) is meant to vary with the art style.
   const THEMES = {
-    flip:   { quick: (m) => `${m} 分鐘`,   start: '開始',               ring: "TIME'S UP", brand: '翻頁倒數鐘',   color: '#efe6d6' },
-    neon:   { quick: (m) => `${m} MIN`,    start: '▶ 啟動倒數',          ring: '// 時間到 //', brand: 'NEON TIMER', color: '#0b0221' },
-    washi:  { quick: (m) => `${m} 分`,     start: '開始',               ring: '時間到',     brand: '刻・倒數',     color: '#efe6d2' },
-    glass:  { quick: (m) => `${m} 分鐘`,   start: '開始',               ring: '時間到了',   brand: '倒數計時器',   color: '#7a5cff' },
-    arcade: { quick: (m) => `LEVEL ${m}`,  start: 'INSERT COIN ▶ START', ring: 'GAME OVER', brand: 'ARCADE TIMER', color: '#05010f' },
+    flip:   { quick: (m) => `${m} 分鐘`,   start: '開始',               ring: "TIME'S UP",    color: '#efe6d6' },
+    neon:   { quick: (m) => `${m} MIN`,    start: '▶ 啟動倒數',          ring: '// 時間到 //', color: '#0b0221' },
+    washi:  { quick: (m) => `${m} 分`,     start: '開始',               ring: '時間到',       color: '#efe6d2' },
+    glass:  { quick: (m) => `${m} 分鐘`,   start: '開始',               ring: '時間到了',     color: '#7a5cff' },
+    arcade: { quick: (m) => `LEVEL ${m}`,  start: 'INSERT COIN ▶ START', ring: 'GAME OVER',   color: '#05010f' },
   };
   let theme = store.get('cd_theme', 'neon');
   if (!THEMES[theme]) theme = 'neon';
@@ -249,7 +251,7 @@
     el.styleGrid.querySelectorAll('[data-theme-name]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeName === theme)));
     el.quick.querySelectorAll('[data-min]').forEach((b) => { b.textContent = t.quick(b.dataset.min); });
     el.startBtn.textContent = t.start;
-    el.brandText.textContent = t.brand;
+    el.brandText.textContent = BASE_TITLE;
     el.ringTitle.textContent = t.ring;
     el.ringTitle.dataset.text = t.ring;
     if (el.metaTheme) el.metaTheme.content = t.color;
